@@ -12,7 +12,7 @@ CLEAN_SCRIPT="${SCRIPT_DIR}/scripts/filter_spurious_streamlines.sh"
 # Read parameters from config.json
 # ============================================================================
 
-bundle=$(jq -r '.bundle' config.json)
+track=$(jq -r '.track' config.json)
 
 min_length=$(jq -r '.min_length // 0' config.json)
 max_length=$(jq -r '.max_length // 10000000' config.json)
@@ -32,13 +32,13 @@ structural=$(jq -r '.structural // empty' config.json)
 # Validate mandatory input
 # ============================================================================
 
-if [ -z "$bundle" ] || [ "$bundle" = "null" ]; then
-    echo "[ERROR] 'bundle' is required in config.json" >&2
+if [ -z "$track" ] || [ "$track" = "null" ]; then
+    echo "[ERROR] 'track' is required in config.json" >&2
     exit 1
 fi
 
-if [ ! -f "$bundle" ]; then
-    echo "[ERROR] Input bundle not found: $bundle" >&2
+if [ ! -f "$track" ]; then
+    echo "[ERROR] Input track not found: $track" >&2
     exit 1
 fi
 
@@ -46,12 +46,12 @@ fi
 # Prepare output directory (brainlife-style)
 # ============================================================================
 
-ext="${bundle##*.}"
+ext="${track##*.}"
 outputdir="${SCRIPT_DIR}/track"
 mkdir -p "${outputdir}"
 output="${outputdir}/track.${ext}"
 
-echo "[INFO] Input bundle   : $bundle"
+echo "[INFO] Input track   : $track"
 echo "[INFO] Output         : $output"
 echo "[INFO] min_length     : $min_length"
 echo "[INFO] max_length     : $max_length"
@@ -84,8 +84,8 @@ cmd+=( --loop-qb-thr "${loop_qb_thr}" )
 cmd+=( --nthreads "${nthreads}" )
 cmd+=( --force )
 
-# Positional arguments: bundle output min_length max_length angle tmp_dir keep_temp [structural]
-cmd+=( "${bundle}" "${output}" "${min_length}" "${max_length}" "${angle}" /tmp 0 )
+# Positional arguments: track output min_length max_length angle tmp_dir keep_temp [structural]
+cmd+=( "${track}" "${output}" "${min_length}" "${max_length}" "${angle}" /tmp 0 )
 
 [ -n "$structural" ] && cmd+=( "${structural}" )
 

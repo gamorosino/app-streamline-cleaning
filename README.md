@@ -1,6 +1,6 @@
 # Streamline Cleaning (app-streamline-cleaning)
 
-This repository provides a reproducible pipeline to **clean spurious streamlines** in a tractography bundle using:
+This repository provides a reproducible pipeline to **clean spurious streamlines** in a tractography track using:
 
 ```bash
 filter_spurious_streamlines.sh
@@ -24,7 +24,7 @@ The app is designed for **Brainlife.io** and runs inside a **containerized envir
 - Fully configurable via `config.json`
 - Outputs a cleaned tractogram and a QC JSON report
 - Optional integration with **Purifibre** for learning-based cleaning
-- Robust fallback logic: if any step fails, the pipeline continues from the last valid bundle
+- Robust fallback logic: if any step fails, the pipeline continues from the last valid track
 
 ---
 
@@ -77,7 +77,7 @@ All parameters are provided via a `config.json` file.
 
 | Field    | Description                          |
 | -------- | ------------------------------------ |
-| `bundle` | Input tract file (`.trk` or `.tck`) |
+| `track` | Input tract file (`.trk` or `.tck`) |
 
 ### Optional parameters
 
@@ -100,7 +100,7 @@ All parameters are provided via a `config.json` file.
 
 ```json
 {
-    "bundle": "input/track.trk",
+    "track": "input/track.trk",
     "min_length": 20,
     "max_length": 200,
     "angle": 360,
@@ -136,7 +136,7 @@ This app is designed to run on **Brainlife.io**.
 ### Web UI
 
 1. Locate the **app-streamline-cleaning** app
-2. Select the input bundle (`.trk` or `.tck`)
+2. Select the input track (`.trk` or `.tck`)
 3. Configure optional parameters (length thresholds, angle, outlier rejection, etc.)
 4. Execute the pipeline
 
@@ -147,7 +147,7 @@ bl login
 
 bl app run --id <app_id> \
            --project <project_id> \
-           --input bundle:<tractogram_object>
+           --input track:<tractogram_object>
 ```
 
 ---
@@ -167,7 +167,7 @@ Create a `config.json` file:
 
 ```json
 {
-    "bundle": "path/to/bundle.trk",
+    "track": "path/to/track.trk",
     "min_length": 20,
     "max_length": 200
 }
@@ -191,7 +191,7 @@ This will:
 ## Pipeline steps
 
 ```
-Input bundle
+Input track
     │
     ├── [optional] Purifibre first pass  (--purifibre-first)
     │
@@ -203,7 +203,7 @@ Input bundle
     │
     └── [optional] Purifibre final pass  (--purifibre)
             │
-            └── Output bundle
+            └── Output track
 ```
 
 ---
