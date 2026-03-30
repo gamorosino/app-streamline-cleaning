@@ -1,0 +1,104 @@
+#!/bin/bash
+#PBS -l nodes=1:ppn=1,vmem=8g,walltime=2:00:00
+#PBS -N app-streamline-cleaning
+#PBS -V
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CLEAN_SCRIPT="${SCRIPT_DIR}/filter_spurious_streamlines.sh"
+
+# ============================================================================
+# Read parameters from config.json
+# ============================================================================
+
+bundle=$(jq -r '.bundle' config.json)
+
+min_length=$(jq -r '.min_length // 0' config.json)
+max_length=$(jq -r '.max_length // 10000000' config.json)
+angle=$(jq -r '.angle // 360' config.json)
+
+reference=$(jq -r '.reference // empty' config.json)
+no_qb_loops=$(jq -r '.no_qb_loops // false' config.json)
+alpha=$(jq -r '.alpha // empty' config.json)
+no_outlier_rejection=$(jq -r '.no_outlier_rejection // false' config.json)
+purifibre=$(jq -r '.purifibre // empty' config.json)
+purifibre_first=$(jq -r '.purifibre_first // empty' config.json)
+loop_qb_thr=$(jq -r '.loop_qb_thr // 8' config.json)
+nthreads=$(jq -r '.nthreads // 1' config.json)
+structural=$(jq -r '.structural // empty' config.json)
+
+# ============================================================================
+# Validate mandatory input
+# ============================================================================
+
+if [ -z "$bundle" ] || [ "$bundle" = "null" ]; then
+    echo "[ERROR] 'bundle' is required in config.json" >&2
+    exit 1
+fi
+
+if [ ! -f "$bundle" ]; then
+    echo "[ERROR] Input bundle not found: $bundle" >&2
+    exit 1
+fi
+
+# ============================================================================
+# Prepare output directory (brainlife-style)
+# ============================================================================
+
+ext="${bundle##*.}"
+outputdir="${SCRIPT_DIR}/track"
+mkdir -p "${outputdir}"
+output="${outputdir}/track.${ext}"
+
+echo "[INFO] Input bundle   : $bundle"
+echo "[INFO] Output         : $output"
+echo "[INFO] min_length     : $min_length"
+echo "[INFO] max_length     : $max_length"
+echo "[INFO] angle          : $angle"
+echo "[INFO] loop_qb_thr    : $loop_qb_thr"
+echo "[INFO] nthreads       : $nthreads"
+
+# ============================================================================
+# Build command for filter_spurious_streamlines.sh
+# ============================================================================
+
+cmd=( bash "${CLEAN_SCRIPT}" )
+
+[ -n "$reference" ]      && cmd+=( --reference "${reference}" )
+[ "$no_qb_loops" = "true" ] && cmd+=( --no-qb-loops )
+[ -n "$alpha" ]          && cmd+=( --alpha "${alpha}" )
+[ "$no_outlier_rejection" = "true" ] && cmd+=( --no-outlier-rejection )
+
+# purifibre_first takes priority: set percentage AND enable first-pass flag
+if [ -n "$purifibre_first" ]; then
+    cmd+=( --purifibre-first "${purifibre_first}" )
+fi
+
+# Final-pass purifibre (also set when purifibre_first is used, if user wants both)
+if [ -n "$purifibre" ]; then
+    cmd+=( --purifibre "${purifibre}" )
+fi
+
+cmd+=( --loop-qb-thr "${loop_qb_thr}" )
+cmd+=( --nthreads "${nthreads}" )
+cmd+=( --force )
+
+# Positional arguments: bundle output min_length max_length angle tmp_dir keep_temp [structural]
+cmd+=( "${bundle}" "${output}" "${min_length}" "${max_length}" "${angle}" /tmp 0 )
+
+[ -n "$structural" ] && cmd+=( "${structural}" )
+
+# ============================================================================
+# Run inside Singularity container (scilpy + mrtrix3)
+# ============================================================================
+
+echo "[INFO] Running filter_spurious_streamlines.sh inside container..."
+printf '  %q' "${cmd[@]}"
+echo
+
+singularity exec -e \
+    docker://gamorosino/tract_align:latest \
+    micromamba run -n tract_align "${cmd[@]}"
+
+echo "[INFO] Done. Output saved to: ${output}"
