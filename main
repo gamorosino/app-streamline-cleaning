@@ -6,7 +6,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CLEAN_SCRIPT="${SCRIPT_DIR}/filter_spurious_streamlines.sh"
+CLEAN_SCRIPT="${SCRIPT_DIR}/scripts/filter_spurious_streamlines.sh"
 
 # ============================================================================
 # Read parameters from config.json
