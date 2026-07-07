@@ -1,10 +1,6 @@
 # Streamline Cleaning (app-streamline-cleaning)
 
-This repository provides a reproducible pipeline to **clean spurious streamlines** in a tractography track using:
-
-```bash
-filter_spurious_streamlines.sh
-```
+This repository provides a reproducible pipeline to **clean spurious streamlines** in tractography tracks.
 
 The pipeline sequentially applies:
 
