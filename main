@@ -12,7 +12,8 @@ CLEAN_SCRIPT="${SCRIPT_DIR}/scripts/filter_spurious_streamlines.sh"
 # Read parameters from config.json
 # ============================================================================
 
-track=$(jq -r '.track' config.json)
+track=$(jq -r '.track // "null"' config.json)
+tcks=$(jq -r '.tcks // "null"' config.json)
 
 min_length=$(jq -r '.min_length // 0' config.json)
 max_length=$(jq -r '.max_length // 10000000' config.json)
@@ -29,30 +30,81 @@ nthreads=$(jq -r '.nthreads // 1' config.json)
 structural=$(jq -r '.structural // empty' config.json)
 
 # ============================================================================
-# Validate mandatory input
+# Validate mandatory input and resolve input mode
 # ============================================================================
 
-if [ -z "$track" ] || [ "$track" = "null" ]; then
-    echo "[ERROR] 'track' is required in config.json" >&2
+resolved_tcks_dir="null"
+
+if [[ "$track" != "null" && -n "$track" ]]; then
+    # --- single-track mode ---
+    if [ ! -f "$track" ]; then
+        echo "[ERROR] Input track not found: $track" >&2
+        exit 1
+    fi
+elif [[ "$tcks" != "null" && -n "$tcks" ]]; then
+    # --- tcks directory mode ---
+    if [[ -d "$tcks" ]]; then
+        :
+    else
+        echo "[WARN] tcks is not a directory: $tcks"
+        echo "[WARN] checking parent folder instead..."
+        tcks="$(dirname "$tcks")"
+    fi
+
+    if [[ -d "$tcks/tcks" ]]; then
+        tcks="$tcks/tcks"
+    fi
+
+    shopt -s nullglob
+    tck_files=("$tcks"/*.tck)
+    shopt -u nullglob
+
+    if [[ ${#tck_files[@]} -eq 0 ]]; then
+        echo "[ERROR] no .tck files found in directory: $tcks" >&2
+        exit 1
+    fi
+
+    resolved_tcks_dir="$tcks"
+else
+    echo "[ERROR] Either 'track' or 'tcks' is required in config.json" >&2
     exit 1
 fi
 
-if [ ! -f "$track" ]; then
-    echo "[ERROR] Input track not found: $track" >&2
-    exit 1
-fi
-
 # ============================================================================
-# Prepare output directory (brainlife-style)
+# Helper: run cleaning on a single tractogram
 # ============================================================================
 
-ext="${track##*.}"
-outputdir="${SCRIPT_DIR}/track"
-mkdir -p "${outputdir}"
-output="${outputdir}/track.${ext}"
+run_one_tract() {
+    local tractogram="$1"
+    local output_track="$2"
+    local cmd
 
-echo "[INFO] Input track   : $track"
-echo "[INFO] Output         : $output"
+    cmd=( bash "${CLEAN_SCRIPT}" )
+    [ -n "$reference" ]                  && cmd+=( --reference "${reference}" )
+    [ "$no_qb_loops" = "true" ]         && cmd+=( --no-qb-loops )
+    [ -n "$alpha" ]                      && cmd+=( --alpha "${alpha}" )
+    [ "$no_outlier_rejection" = "true" ] && cmd+=( --no-outlier-rejection )
+    [ -n "$purifibre_first" ]            && cmd+=( --purifibre-first "${purifibre_first}" )
+    [ -n "$purifibre" ]                  && cmd+=( --purifibre "${purifibre}" )
+    cmd+=( --loop-qb-thr "${loop_qb_thr}" )
+    cmd+=( --nthreads "${nthreads}" )
+    cmd+=( --force )
+    cmd+=( "${tractogram}" "${output_track}" "${min_length}" "${max_length}" "${angle}" /tmp 0 )
+    [ -n "$structural" ] && cmd+=( "${structural}" )
+
+    echo "[INFO] Running filter_spurious_streamlines.sh inside container..."
+    printf '  %q' "${cmd[@]}"
+    echo
+
+    singularity exec -e \
+        docker://gamorosino/tract_align:v1.1 \
+        micromamba run -n tract_align "${cmd[@]}"
+}
+
+# ============================================================================
+# Print common parameters
+# ============================================================================
+
 echo "[INFO] min_length     : $min_length"
 echo "[INFO] max_length     : $max_length"
 echo "[INFO] angle          : $angle"
@@ -60,45 +112,43 @@ echo "[INFO] loop_qb_thr    : $loop_qb_thr"
 echo "[INFO] nthreads       : $nthreads"
 
 # ============================================================================
-# Build command for filter_spurious_streamlines.sh
+# Run single tract or loop over folder
 # ============================================================================
 
-cmd=( bash "${CLEAN_SCRIPT}" )
+if [[ "$resolved_tcks_dir" = "null" ]]; then
+    # --- single-track mode ---
+    ext="${track##*.}"
+    outputdir="${SCRIPT_DIR}/track"
+    mkdir -p "${outputdir}"
+    output_track="${outputdir}/track.${ext}"
 
-[ -n "$reference" ]      && cmd+=( --reference "${reference}" )
-[ "$no_qb_loops" = "true" ] && cmd+=( --no-qb-loops )
-[ -n "$alpha" ]          && cmd+=( --alpha "${alpha}" )
-[ "$no_outlier_rejection" = "true" ] && cmd+=( --no-outlier-rejection )
+    echo "[INFO] Input track    : $track"
+    echo "[INFO] Output         : $output_track"
 
-# purifibre_first takes priority: set percentage AND enable first-pass flag
-if [ -n "$purifibre_first" ]; then
-    cmd+=( --purifibre-first "${purifibre_first}" )
+    run_one_tract "$track" "$output_track"
+    echo "[INFO] Done. Output saved to: ${output_track}"
+
+else
+    # --- tcks directory mode ---
+    outputdir="${SCRIPT_DIR}/clean_tracts"
+    mkdir -p "${outputdir}"
+
+    shopt -s nullglob
+    tck_files=("$resolved_tcks_dir"/*.tck)
+    shopt -u nullglob
+
+    echo "[INFO] Input tcks dir : $resolved_tcks_dir"
+    echo "[INFO] Output dir     : $outputdir"
+    echo "[INFO] Found ${#tck_files[@]} .tck files"
+
+    for tract_file in "${tck_files[@]}"; do
+        output_track="${outputdir}/$(basename "${tract_file}")"
+        echo ""
+        echo "[INFO] Processing: $(basename "${tract_file}")"
+        run_one_tract "$tract_file" "$output_track"
+        echo "[INFO] Done: ${output_track}"
+    done
+
+    echo ""
+    echo "[INFO] All done. Cleaned tractograms saved to: ${outputdir}"
 fi
-
-# Final-pass purifibre (also set when purifibre_first is used, if user wants both)
-if [ -n "$purifibre" ]; then
-    cmd+=( --purifibre "${purifibre}" )
-fi
-
-cmd+=( --loop-qb-thr "${loop_qb_thr}" )
-cmd+=( --nthreads "${nthreads}" )
-cmd+=( --force )
-
-# Positional arguments: track output min_length max_length angle tmp_dir keep_temp [structural]
-cmd+=( "${track}" "${output}" "${min_length}" "${max_length}" "${angle}" /tmp 0 )
-
-[ -n "$structural" ] && cmd+=( "${structural}" )
-
-# ============================================================================
-# Run inside Singularity container (scilpy + mrtrix3)
-# ============================================================================
-
-echo "[INFO] Running filter_spurious_streamlines.sh inside container..."
-printf '  %q' "${cmd[@]}"
-echo
-
-singularity exec -e \
-    docker://gamorosino/tract_align:latest \
-    micromamba run -n tract_align "${cmd[@]}"
-
-echo "[INFO] Done. Output saved to: ${output}"
