@@ -144,6 +144,7 @@ config=$(jq -n \
 )
 
 echo "$config" > "${SCRIPT_DIR}/config.json"
+echo "[INFO] config.json written to: ${SCRIPT_DIR}/config.json"
 echo "[INFO] config.json written:"
 echo "$config" | sed 's/^/  /'
 echo ""

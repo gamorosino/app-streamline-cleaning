@@ -9,26 +9,26 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLEAN_SCRIPT="${SCRIPT_DIR}/scripts/filter_spurious_streamlines.sh"
 
 # ============================================================================
-# Read parameters from config.json
+# Read parameters from "${SCRIPT_DIR}/config.json"
 # ============================================================================
 
-track=$(jq -r '.track // "null"' config.json)
-tcks=$(jq -r '.tcks // "null"' config.json)
+track=$(jq -r '.track // "null"' "${SCRIPT_DIR}/config.json")
+tcks=$(jq -r '.tcks // "null"' "${SCRIPT_DIR}/config.json")
 
-min_length=$(jq -r '.min_length // 0' config.json)
-max_length=$(jq -r '.max_length // 10000000' config.json)
-angle=$(jq -r '.angle // 360' config.json)
+min_length=$(jq -r '.min_length // 0' "${SCRIPT_DIR}/config.json")
+max_length=$(jq -r '.max_length // 10000000' "${SCRIPT_DIR}/config.json")
+angle=$(jq -r '.angle // 360' "${SCRIPT_DIR}/config.json")
 
-reference=$(jq -r '.reference // empty' config.json)
-no_qb_loops=$(jq -r '.no_qb_loops // false' config.json)
-alpha=$(jq -r '.alpha // empty' config.json)
-no_outlier_rejection=$(jq -r '.no_outlier_rejection // false' config.json)
-purifibre=$(jq -r '.purifibre // empty' config.json)
-purifibre_first=$(jq -r '.purifibre_first // empty' config.json)
-loop_qb_thr=$(jq -r '.loop_qb_thr // 8' config.json)
-nthreads=$(jq -r '.nthreads // 1' config.json)
-structural=$(jq -r '.structural // empty' config.json)
-output_dir=$(jq -r '.output_dir // "null"' config.json)
+reference=$(jq -r '.reference // empty' "${SCRIPT_DIR}/config.json")
+no_qb_loops=$(jq -r '.no_qb_loops // false' "${SCRIPT_DIR}/config.json")
+alpha=$(jq -r '.alpha // empty' "${SCRIPT_DIR}/config.json")
+no_outlier_rejection=$(jq -r '.no_outlier_rejection // false' "${SCRIPT_DIR}/config.json")
+purifibre=$(jq -r '.purifibre // empty' "${SCRIPT_DIR}/config.json")
+purifibre_first=$(jq -r '.purifibre_first // empty' "${SCRIPT_DIR}/config.json")
+loop_qb_thr=$(jq -r '.loop_qb_thr // 8' "${SCRIPT_DIR}/config.json")
+nthreads=$(jq -r '.nthreads // 1' "${SCRIPT_DIR}/config.json")
+structural=$(jq -r '.structural // empty' "${SCRIPT_DIR}/config.json")
+output_dir=$(jq -r '.output_dir // "null"' "${SCRIPT_DIR}/config.json")
 
 # ============================================================================
 # Validate mandatory input and resolve input mode
@@ -67,7 +67,7 @@ elif [[ "$tcks" != "null" && -n "$tcks" ]]; then
 
     resolved_tcks_dir="$tcks"
 else
-    echo "[ERROR] Either 'track' or 'tcks' is required in config.json" >&2
+    echo "[ERROR] Either 'track' or 'tcks' is required in "${SCRIPT_DIR}/config.json"" >&2
     exit 1
 fi
 
