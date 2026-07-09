@@ -28,6 +28,7 @@ purifibre_first=$(jq -r '.purifibre_first // empty' config.json)
 loop_qb_thr=$(jq -r '.loop_qb_thr // 8' config.json)
 nthreads=$(jq -r '.nthreads // 1' config.json)
 structural=$(jq -r '.structural // empty' config.json)
+output_dir=$(jq -r '.output_dir // "null"' config.json)
 
 # ============================================================================
 # Validate mandatory input and resolve input mode
@@ -118,7 +119,7 @@ echo "[INFO] nthreads       : $nthreads"
 if [[ "$resolved_tcks_dir" = "null" ]]; then
     # --- single-track mode ---
     ext="${track##*.}"
-    outputdir="${SCRIPT_DIR}/track"
+    outputdir="$([[ "$output_dir" != "null" && -n "$output_dir" ]] && echo "$output_dir" || echo "${SCRIPT_DIR}/track")"
     mkdir -p "${outputdir}"
     output_track="${outputdir}/track.${ext}"
 
@@ -130,7 +131,7 @@ if [[ "$resolved_tcks_dir" = "null" ]]; then
 
 else
     # --- tcks directory mode ---
-    outputdir="${SCRIPT_DIR}/clean_tracts"
+    outputdir="$([[ "$output_dir" != "null" && -n "$output_dir" ]] && echo "$output_dir" || echo "${SCRIPT_DIR}/clean_tracts")"
     mkdir -p "${outputdir}"
 
     shopt -s nullglob

@@ -29,6 +29,8 @@ Filtering options:
   --purifibre VAL       Purifibre final-pass threshold
   --purifibre_first VAL Purifibre first-pass threshold
   --nthreads N          Number of threads (default: 1)
+  --output_dir PATH     Directory where results are saved
+                          (default: track/ for single tract, clean_tracts/ for tcks)
 
 Other:
   -h, --help            Show this help and exit
@@ -53,6 +55,7 @@ alpha=""
 structural=""
 purifibre=""
 purifibre_first=""
+output_dir=""
 
 # ============================================================================
 # Parse arguments
@@ -74,6 +77,7 @@ while [[ $# -gt 0 ]]; do
         --purifibre)         purifibre="$2";           shift 2 ;;
         --purifibre_first)   purifibre_first="$2";    shift 2 ;;
         --nthreads)          nthreads="$2";            shift 2 ;;
+        --output_dir)        output_dir="$2";          shift 2 ;;
         -h|--help)           usage; exit 0 ;;
         *) echo "[ERROR] Unknown option: $1" >&2; usage; exit 1 ;;
     esac
@@ -119,6 +123,7 @@ config=$(jq -n \
     --argjson structural   "$(json_str "$structural")" \
     --argjson purifibre    "$(json_str "$purifibre")" \
     --argjson purifibre_first "$(json_str "$purifibre_first")" \
+    --argjson output_dir      "$(json_str "$output_dir")" \
     '{
         track:                $track,
         tcks:                 $tcks,
@@ -133,7 +138,8 @@ config=$(jq -n \
         alpha:                $alpha,
         structural:           $structural,
         purifibre:            $purifibre,
-        purifibre_first:      $purifibre_first
+        purifibre_first:      $purifibre_first,
+        output_dir:           $output_dir
     }'
 )
 
