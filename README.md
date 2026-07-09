@@ -10,7 +10,7 @@ The pipeline sequentially applies:
 4. **Outlier rejection** (scilpy)
 5. Optional **Purifibre** (final pass)
 
-The app is designed for **Brainlife.io** and runs inside a **containerized environment** to ensure reproducibility and portability.
+The app is designed for **Brainlife.io** and runs inside a **containerized environment** to ensure reproducibility and portability. It can also be run locally via the CLI wrapper `main_cli.sh`, provided Singularity and jq are available.
 
 ---
 
@@ -96,6 +96,7 @@ All parameters are provided via a `config.json` file (or via the CLI wrapper —
 | `purifibre_first`      | number  | `null`       | Apply Purifibre before filtering (percentage)                 |
 | `nthreads`             | number  | `1`          | Number of threads for loop detection                          |
 | `structural`           | string  | `null`       | Structural image for `.tck` → `.trk` conversion (Purifibre)  |
+| `output_dir`           | string  | `null`       | Output directory (overrides the default `track/` or `clean_tracts/`) |
 
 ### Example `config.json` — single tract
 
@@ -132,10 +133,12 @@ All parameters are provided via a `config.json` file (or via the CLI wrapper —
 
 ## Output
 
-| Path                              | Description                                         |
-| --------------------------------- | --------------------------------------------------- |
-| `track/track.<ext>`               | Cleaned tractogram (single-tract mode)              |
-| `clean_tracts/<original_name>.tck`| Cleaned tractograms, one per input file (tcks mode) |
+| Path                                        | Description                                         |
+| ------------------------------------------- | --------------------------------------------------- |
+| `track/track.<ext>` ¹                       | Cleaned tractogram (single-tract mode)              |
+| `clean_tracts/<original_name>.tck` ¹        | Cleaned tractograms, one per input file (tcks mode) |
+
+¹ Default paths. Override with `--output_dir` (CLI) or `"output_dir"` in `config.json`.
 
 ---
 
@@ -184,9 +187,13 @@ bash main_cli.sh --tcks path/to/tracts/ --nthreads 4
 
 # with Purifibre
 bash main_cli.sh --tcks path/to/tracts/ --purifibre_first 0.3 --purifibre 0.1
+
+# custom output directory
+bash main_cli.sh --track path/to/bundle.tck --output_dir /my/results
+bash main_cli.sh --tcks path/to/tracts/ --output_dir /my/results/clean
 ```
 
-All `config.json` keys are available as `--key value` flags. Boolean switches (`--no_qb_loops`, `--no_outlier_rejection`) take no value.
+All `config.json` keys are available as `--key value` flags. Boolean switches (`--no_qb_loops`, `--no_outlier_rejection`) take no value. When `--output_dir` is omitted, results go to `track/` (single-tract mode) or `clean_tracts/` (tcks mode).
 
 ### 2b. Run via `config.json`
 
