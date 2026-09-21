@@ -732,7 +732,7 @@ if [ "$force" -eq 1 ] || [ "$(exists "${output}")" -eq 0 ]; then
 		\"initial\": ${input_count},
 		\"final\": ${final_count},
 		\"removed\": ${total_removed},
-		\"pct_removed\": $( printf "%.3f" "$(echo "100 * $total_removed / $input_count" | bc -l)" ),
+		\"pct_removed\": $( awk -v r="$total_removed" -v t="$input_count" 'BEGIN { printf "%.3f", (t > 0) ? (100 * r / t) : 0 }' ),
 		\"status\": \"success\",
 		\"timestamp\": \"$(timestamp)\"
 	}"
