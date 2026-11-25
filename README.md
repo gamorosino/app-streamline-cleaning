@@ -1,5 +1,57 @@
 # Streamline Cleaning (app-streamline-cleaning)
 
+<!-- brainlife-app:begin (generated from the App manifest; edit the manifest, not this block) -->
+
+> **Removes spurious streamlines from each tract in a set of .tck files with length, loop (angle and QuickBundles) and scilpy outlier filtering, plus optional Purifibre refinement.**
+
+Applies filter_spurious_streamlines.sh independently to every .tck in the input tract set: optional Purifibre first pass, length filtering, loop filtering, scilpy outlier rejection and optional Purifibre final pass. If a step fails the pipeline continues from the last valid track. Use it to clean segmented bundles before tractometry; for a single tractogram use the single-track version.
+
+| | |
+|---|---|
+| 📥 **Inputs** | `neuro/tcks` · `neuro/anat/t1w` |
+| 📤 **Outputs** | `neuro/tcks` |
+| 🐳 **Container** | `gamorosino/tract_align:v1.1` |
+| ⚙️ **Resources** | 1 CPUs · 4 h walltime |
+| 🔗 **Run it** | [doi.org/10.25663/brainlife.app.947](https://doi.org/10.25663/brainlife.app.947) |
+
+#### 📥 Inputs
+
+| Input | Datatype | Required | Description |
+|---|---|---|---|
+| `tcks` | `neuro/tcks` | yes | Set of tracts, one .tck file per bundle. |
+| `reference` | `neuro/anat/t1w` | yes | Reference anatomical image passed to the scilpy steps. |
+
+#### 📤 Outputs
+
+| Output | Datatype | Description |
+|---|---|---|
+| `clean_tracts` | `neuro/tcks` | Cleaned tracts, one .tck per input file with the original names. |
+
+<details>
+<summary><b>⚙️ Parameters</b> (9)</summary>
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `min_length` | number |  | Minimum streamline length; shorter streamlines are removed (0 if empty). (mm) |
+| `max_length` | number |  | Maximum streamline length; longer streamlines are removed. (mm) |
+| `angle` | number | `360` | Maximum turning angle used for loop rejection. (degrees) |
+| `loop_qb_thr` | number | `8` | QuickBundles distance threshold for loop filtering. (mm) |
+| `no_qb_loops` | boolean | `false` | Disable QuickBundles-based loop detection. |
+| `alpha` | number |  | scilpy outlier rejection alpha (scilpy default 0.6; README recommends 0.3-0.4). |
+| `no_outlier_rejection` | boolean | `true` | Skip the scilpy outlier rejection step. |
+| `purifibre` | number | `5` | Percentage of streamlines Purifibre removes in a final pass (empty to skip). (percent) |
+| `nthreads` | number | `1` | Number of threads for loop detection. |
+
+</details>
+
+📚 **References used by this App:**
+- Amorosino G, Caron B, Kwon J, et al., Pestilli F. A retinotopic wiring principle of the human brain. bioRxiv (2026).
+- Renauld E, et al. Tractography analysis with the scilpy toolbox. Aperture Neuro (2026).
+- Aydogan DB. Fiber coupling (FICO) measure using anisotropic smoothing of track orientation density images for tractogram filtering. ISMRM 2022.
+- Hayashi S, et al. brainlife.io: a decentralized and open-source cloud platform to support neuroscience research. Nature Methods (2024). [doi:10.1038/s41592-024-02237-2](https://doi.org/10.1038/s41592-024-02237-2)
+
+<!-- brainlife-app:end -->
+
 This repository provides a reproducible pipeline to **clean spurious streamlines** in tractography tracks.
 
 The pipeline sequentially applies:
